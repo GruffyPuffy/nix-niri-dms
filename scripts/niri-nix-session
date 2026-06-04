@@ -1,0 +1,12 @@
+#!/bin/bash
+# Source your personal profile to bring in all Nix paths (~/.nix-profile/bin, etc.)
+if [ -f "$HOME/.profile" ]; then
+    source "$HOME/.profile"
+fi
+
+# Alternative fallback to ensure Nix is explicitly in the PATH
+export PATH="$HOME/.nix-profile/bin:$HOME/.local/state/nix/profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+
+# Launch Niri with the loaded environment
+exec nixGL niri --session
+#exec niri --session

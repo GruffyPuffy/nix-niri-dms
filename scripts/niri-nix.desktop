@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Niri (Nix)
+Comment=Niri session from Nix profile
+Exec=/usr/local/bin/niri-nix-session
+Type=Application
+DesktopNames=niri
