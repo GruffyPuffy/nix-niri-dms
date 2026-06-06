@@ -56,6 +56,22 @@ Run as your normal user, not root:
 ./install.sh
 ```
 
+This opens an interactive menu:
+
+```text
+1) Re/install all
+2) Install/update Ubuntu packages
+3) Install Nix daemon if missing
+4) Enable Nix experimental features
+5) Install/update Nix profile packages
+6) Search browsers and set Mod+W
+7) Stow Niri and Kitty configs
+8) Install session files and lock helper
+9) Exit
+```
+
+Choosing `Re/install all` runs the full install and exits. The other actions run one step and return to the menu.
+
 To preview actions without changing the system:
 
 ```bash
@@ -68,7 +84,7 @@ To accept yes/no prompts automatically:
 ./install.sh --yes
 ```
 
-`--yes` does not choose a browser for you. Browser selection is intentionally skipped so the current `Mod+W` binding is not changed by accident.
+`--yes` runs the full install without opening the menu. It does not choose a browser for you; browser selection is intentionally skipped so the current `Mod+W` binding is not changed by accident.
 
 ## Browser Binding
 
@@ -107,6 +123,8 @@ The installer copies:
 ```bash
 scripts/niri-nix-session -> /usr/local/bin/niri-nix-session
 scripts/niri-nix.desktop -> /usr/share/wayland-sessions/niri-nix.desktop
+scripts/lock.sh -> /usr/local/bin/niri-gdm-lock
+scripts/lock-splash/shell.qml -> /usr/local/share/niri-nix-dms/lock-splash/shell.qml
 ```
 
 After installation, log out and choose `Niri (Nix)` from your display manager.
@@ -118,3 +136,4 @@ If Nix was installed for the first time, rebooting once is the simplest way to m
 - This installer targets Ubuntu 24.04.
 - The Niri session is launched through `nixGLIntel`.
 - The session wrapper sources `~/.profile` and then adds common Nix profile paths to `PATH`.
+- `Mod+Alt+L` uses the GDM greeter switch through `niri-gdm-lock`, with a small Quickshell splash while GDM takes over.

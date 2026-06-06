@@ -28,8 +28,11 @@ binds {
     Mod+Shift+N hotkey-overlay-title="Notepad" { spawn "dms" "ipc" "call" "notepad" "toggle"; }
 
     // === Security ===
+    // Mod+Alt+L hotkey-overlay-title="Lock Screen" {
+    //     spawn "dms" "ipc" "call" "lock" "lock";
+    // }
     Mod+Alt+L hotkey-overlay-title="Lock Screen" {
-        spawn "dms" "ipc" "call" "lock" "lock";
+        spawn "niri-gdm-lock";
     }
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete hotkey-overlay-title="Task Manager" {

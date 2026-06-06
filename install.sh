@@ -4,14 +4,17 @@ set -Eeuo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SESSION_WRAPPER_SRC="$REPO_DIR/scripts/niri-nix-session"
 SESSION_DESKTOP_SRC="$REPO_DIR/scripts/niri-nix.desktop"
+LOCK_WRAPPER_SRC="$REPO_DIR/scripts/lock.sh"
+LOCK_SPLASH_SRC="$REPO_DIR/scripts/lock-splash/shell.qml"
 SESSION_WRAPPER_DST="/usr/local/bin/niri-nix-session"
 SESSION_DESKTOP_DST="/usr/share/wayland-sessions/niri-nix.desktop"
+LOCK_WRAPPER_DST="/usr/local/bin/niri-gdm-lock"
+LOCK_SPLASH_DST="/usr/local/share/niri-nix-dms/lock-splash/shell.qml"
 
 APT_PACKAGES=(
   ca-certificates
   curl
   dbus-user-session
-  swaylock
   stow
 )
 
@@ -294,7 +297,10 @@ configure_mod_w_browser() {
     return
   fi
 
-  read -r -p "Select browser for Mod+W, or press Enter to keep current: " choice
+  if ! read -r -p "Select browser for Mod+W, or press Enter to keep current: " choice; then
+    warn "No browser selection received. Keeping the current Mod+W binding."
+    return
+  fi
 
   if [ -z "$choice" ]; then
     log "Keeping current Mod+W browser binding"
@@ -383,10 +389,14 @@ stow_configs() {
 install_session_files() {
   [ -f "$SESSION_WRAPPER_SRC" ] || die "Missing $SESSION_WRAPPER_SRC"
   [ -f "$SESSION_DESKTOP_SRC" ] || die "Missing $SESSION_DESKTOP_SRC"
+  [ -f "$LOCK_WRAPPER_SRC" ] || die "Missing $LOCK_WRAPPER_SRC"
+  [ -f "$LOCK_SPLASH_SRC" ] || die "Missing $LOCK_SPLASH_SRC"
 
-  log "Installing Niri session wrapper and desktop entry"
+  log "Installing Niri session files and lock helper"
   run sudo install -Dm755 "$SESSION_WRAPPER_SRC" "$SESSION_WRAPPER_DST"
   run sudo install -Dm644 "$SESSION_DESKTOP_SRC" "$SESSION_DESKTOP_DST"
+  run sudo install -Dm755 "$LOCK_WRAPPER_SRC" "$LOCK_WRAPPER_DST"
+  run sudo install -Dm644 "$LOCK_SPLASH_SRC" "$LOCK_SPLASH_DST"
 }
 
 print_done() {
@@ -401,7 +411,93 @@ the daemon and profile environment are available everywhere.
 Installed session files:
   $SESSION_WRAPPER_DST
   $SESSION_DESKTOP_DST
+  $LOCK_WRAPPER_DST
 EOF
+}
+
+print_intro() {
+  cat <<'INTRO'
+Niri + DMS installer for Ubuntu 24.04 using nixpkgs.
+
+This can:
+  - install Ubuntu packages: ca-certificates, curl, dbus-user-session, stow
+  - install the Nix daemon if nix is missing
+  - enable Nix experimental features: nix-command, flakes
+  - install Niri, DMS, and supporting tools into your Nix profile
+  - optionally select a detected browser for Mod+W
+  - stow the repo's Niri and Kitty configs into ~/.config
+  - install the display-manager session files and GDM lock helper
+INTRO
+}
+
+run_all() {
+  install_apt_packages
+  install_nix_daemon
+  enable_nix_experimental_features
+  install_nix_packages
+  configure_mod_w_browser
+  stow_configs
+  install_session_files
+}
+
+print_menu() {
+  cat <<'MENU'
+
+Select an action:
+  1) Re/install all
+  2) Install/update Ubuntu packages
+  3) Install Nix daemon if missing
+  4) Enable Nix experimental features
+  5) Install/update Nix profile packages
+  6) Search browsers and set Mod+W
+  7) Stow Niri and Kitty configs
+  8) Install session files and lock helper
+  9) Exit
+MENU
+}
+
+run_menu() {
+  local choice
+
+  while true; do
+    print_menu
+    read -r -p "Choice: " choice
+
+    case "$choice" in
+      1)
+        run_all
+        print_done
+        return
+        ;;
+      2)
+        install_apt_packages
+        ;;
+      3)
+        install_nix_daemon
+        ;;
+      4)
+        enable_nix_experimental_features
+        ;;
+      5)
+        install_nix_packages
+        ;;
+      6)
+        configure_mod_w_browser
+        ;;
+      7)
+        stow_configs
+        ;;
+      8)
+        install_session_files
+        ;;
+      9|"")
+        return
+        ;;
+      *)
+        warn "Unknown menu choice: $choice"
+        ;;
+    esac
+  done
 }
 
 main() {
@@ -430,50 +526,15 @@ main() {
 
   require_ubuntu_24
 
-  cat <<'INTRO'
-Niri + DMS installer for Ubuntu 24.04 using nixpkgs.
+  print_intro
 
-This can:
-  - install Ubuntu packages: ca-certificates, curl, dbus-user-session, swaylock, stow
-  - install the Nix daemon if nix is missing
-  - enable Nix experimental features: nix-command, flakes
-  - install Niri, DMS, and supporting tools into your Nix profile
-  - optionally select a detected browser for Mod+W
-  - stow the repo's Niri and Kitty configs into ~/.config
-  - install the display-manager session files
-INTRO
-
-  if confirm "Install/update Ubuntu packages?"; then
-    install_apt_packages
+  if [ "$ASSUME_YES" -eq 1 ]; then
+    run_all
+    print_done
+    return
   fi
 
-  if confirm "Install Nix daemon if nix is missing?"; then
-    install_nix_daemon
-  else
-    load_nix_environment
-  fi
-
-  if confirm "Enable Nix experimental features in ~/.config/nix/nix.conf?"; then
-    enable_nix_experimental_features
-  fi
-
-  if confirm "Install Niri + DMS packages with nix profile?"; then
-    install_nix_packages
-  fi
-
-  if confirm "Search for browsers and optionally set the Mod+W binding?"; then
-    configure_mod_w_browser
-  fi
-
-  if confirm "Stow Niri and Kitty configs into ~/.config?"; then
-    stow_configs
-  fi
-
-  if confirm "Install /usr/local/bin/niri-nix-session and the Wayland session desktop file?"; then
-    install_session_files
-  fi
-
-  print_done
+  run_menu
 }
 
 main "$@"
