@@ -64,7 +64,7 @@ This opens an interactive menu:
 3) Install Nix daemon if missing
 4) Enable Nix experimental features
 5) Install/update Nix profile packages
-6) Update all Nix profile packages
+6) Update this repo's Nix profile packages
 7) Search browsers and set Mod+W
 8) Stow Niri and Kitty configs
 9) Install session files and lock helper
@@ -87,7 +87,7 @@ To accept yes/no prompts automatically:
 
 ## Updating
 
-To update Niri, DMS, and the other packages installed in your Nix profile, run:
+To update Niri, DMS, and the other Nix packages managed by this repo, run:
 
 ```bash
 ./install.sh
@@ -96,13 +96,13 @@ To update Niri, DMS, and the other packages installed in your Nix profile, run:
 Then choose:
 
 ```text
-6) Update all Nix profile packages
+6) Update this repo's Nix profile packages
 ```
 
-This runs:
+This upgrades only the known profile entries from this repo, such as `niri`, `dms-shell`, `quickshell`, `kitty`, and `nixGLIntel`. It does not update unrelated packages you may have installed with `nix profile add`.
 
 ```bash
-nix --extra-experimental-features "nix-command flakes" profile upgrade --all
+nix --extra-experimental-features "nix-command flakes" profile upgrade niri dms-shell quickshell ...
 ```
 
 Before upgrading, the installer removes an old `github:nix-community/nixGL#default` profile entry if it exists. This repo uses `nixGLIntel`; the default nixGL auto-detection path can fail on Ubuntu because it needs impure evaluation.

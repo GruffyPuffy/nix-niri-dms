@@ -38,6 +38,26 @@ NIX_PACKAGES=(
   nixpkgs#xwayland-satellite
 )
 
+NIX_PROFILE_NAMES=(
+  cliphist
+  dgop
+  dms-shell
+  fuzzel
+  nixGLIntel
+  kitty
+  mako
+  niri
+  polkit_gnome
+  quickshell
+  swww
+  thunar
+  waybar
+  wl-clipboard
+  xdg-desktop-portal-gnome
+  xdg-utils
+  xwayland-satellite
+)
+
 BROWSER_LABELS=()
 BROWSER_COMMANDS=()
 
@@ -293,6 +313,10 @@ remove_legacy_nixgl_default() {
 }
 
 update_nix_profile_packages() {
+  local profile_json
+  local upgrade_names=()
+  local name
+
   load_nix_environment
 
   if [ "$DRY_RUN" -eq 0 ] && ! have_cmd nix; then
@@ -301,8 +325,29 @@ update_nix_profile_packages() {
 
   remove_legacy_nixgl_default
 
-  log "Updating all Nix profile packages"
-  run nix --extra-experimental-features "nix-command flakes" profile upgrade --all
+  log "Updating this repo's Nix profile packages"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ nix --extra-experimental-features %q profile upgrade' "nix-command flakes"
+    printf ' %q' "${NIX_PROFILE_NAMES[@]}"
+    printf '\n'
+    return
+  fi
+
+  profile_json="$(NO_COLOR=1 nix --extra-experimental-features "nix-command flakes" profile list --json)"
+
+  for name in "${NIX_PROFILE_NAMES[@]}"; do
+    if printf '%s' "$profile_json" | grep -Fq "\"$name\":{\"active\":true"; then
+      upgrade_names+=("$name")
+    fi
+  done
+
+  if [ "${#upgrade_names[@]}" -eq 0 ]; then
+    warn "None of this repo's Nix profile packages are currently installed. Run menu option 5 first."
+    return
+  fi
+
+  run nix --extra-experimental-features "nix-command flakes" profile upgrade "${upgrade_names[@]}"
 }
 
 configure_mod_w_browser() {
@@ -456,7 +501,7 @@ This can:
   - install the Nix daemon if nix is missing
   - enable Nix experimental features: nix-command, flakes
   - install Niri, DMS, and supporting tools into your Nix profile
-  - update all packages in your Nix profile
+  - update this repo's packages in your Nix profile
   - optionally select a detected browser for Mod+W
   - stow the repo's Niri and Kitty configs into ~/.config
   - install the display-manager session files and GDM lock helper
@@ -482,7 +527,7 @@ Select an action:
   3) Install Nix daemon if missing
   4) Enable Nix experimental features
   5) Install/update Nix profile packages
-  6) Update all Nix profile packages
+  6) Update this repo's Nix profile packages
   7) Search browsers and set Mod+W
   8) Stow Niri and Kitty configs
   9) Install session files and lock helper
