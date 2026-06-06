@@ -64,10 +64,11 @@ This opens an interactive menu:
 3) Install Nix daemon if missing
 4) Enable Nix experimental features
 5) Install/update Nix profile packages
-6) Search browsers and set Mod+W
-7) Stow Niri and Kitty configs
-8) Install session files and lock helper
-9) Exit
+6) Update all Nix profile packages
+7) Search browsers and set Mod+W
+8) Stow Niri and Kitty configs
+9) Install session files and lock helper
+q) Quit
 ```
 
 Choosing `Re/install all` runs the full install and exits. The other actions run one step and return to the menu.
@@ -82,6 +83,34 @@ To accept yes/no prompts automatically:
 
 ```bash
 ./install.sh --yes
+```
+
+## Updating
+
+To update Niri, DMS, and the other packages installed in your Nix profile, run:
+
+```bash
+./install.sh
+```
+
+Then choose:
+
+```text
+6) Update all Nix profile packages
+```
+
+This runs:
+
+```bash
+nix --extra-experimental-features "nix-command flakes" profile upgrade --all
+```
+
+Before upgrading, the installer removes an old `github:nix-community/nixGL#default` profile entry if it exists. This repo uses `nixGLIntel`; the default nixGL auto-detection path can fail on Ubuntu because it needs impure evaluation.
+
+Nix profiles are versioned, so you can roll back the previous profile generation if an update breaks something:
+
+```bash
+nix --extra-experimental-features "nix-command flakes" profile rollback
 ```
 
 `--yes` runs the full install without opening the menu. It does not choose a browser for you; browser selection is intentionally skipped so the current `Mod+W` binding is not changed by accident.

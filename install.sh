@@ -273,6 +273,38 @@ install_nix_packages() {
   run nix --extra-experimental-features "nix-command flakes" profile add "${NIX_PACKAGES[@]}"
 }
 
+remove_legacy_nixgl_default() {
+  local profile_json
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ check Nix profile for legacy github:nix-community/nixGL#default entry\n'
+    printf '+ remove legacy nixGL default entry if present: nix profile remove nixGL\n'
+    return
+  fi
+
+  profile_json="$(NO_COLOR=1 nix --extra-experimental-features "nix-command flakes" profile list --json)"
+
+  if ! printf '%s' "$profile_json" | grep -Eq '"nixGL":\{[^}]*"attrPath":"packages\.[^"]+\.default"'; then
+    return
+  fi
+
+  warn "Removing legacy nixGL default profile entry. This installer uses nixGLIntel instead."
+  run nix --extra-experimental-features "nix-command flakes" profile remove nixGL
+}
+
+update_nix_profile_packages() {
+  load_nix_environment
+
+  if [ "$DRY_RUN" -eq 0 ] && ! have_cmd nix; then
+    die "nix is not available. Open a new shell after Nix installation, then rerun this script."
+  fi
+
+  remove_legacy_nixgl_default
+
+  log "Updating all Nix profile packages"
+  run nix --extra-experimental-features "nix-command flakes" profile upgrade --all
+}
+
 configure_mod_w_browser() {
   local binds_file="$REPO_DIR/niri_configs/.config/niri/dms/binds.kdl"
   local choice label command_line escaped_label escaped_command
@@ -424,6 +456,7 @@ This can:
   - install the Nix daemon if nix is missing
   - enable Nix experimental features: nix-command, flakes
   - install Niri, DMS, and supporting tools into your Nix profile
+  - update all packages in your Nix profile
   - optionally select a detected browser for Mod+W
   - stow the repo's Niri and Kitty configs into ~/.config
   - install the display-manager session files and GDM lock helper
@@ -449,10 +482,11 @@ Select an action:
   3) Install Nix daemon if missing
   4) Enable Nix experimental features
   5) Install/update Nix profile packages
-  6) Search browsers and set Mod+W
-  7) Stow Niri and Kitty configs
-  8) Install session files and lock helper
-  9) Exit
+  6) Update all Nix profile packages
+  7) Search browsers and set Mod+W
+  8) Stow Niri and Kitty configs
+  9) Install session files and lock helper
+  q) Quit
 MENU
 }
 
@@ -482,15 +516,18 @@ run_menu() {
         install_nix_packages
         ;;
       6)
-        configure_mod_w_browser
+        update_nix_profile_packages
         ;;
       7)
-        stow_configs
+        configure_mod_w_browser
         ;;
       8)
+        stow_configs
+        ;;
+      9)
         install_session_files
         ;;
-      9|"")
+      q|Q|"")
         return
         ;;
       *)
