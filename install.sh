@@ -20,7 +20,7 @@ NIX_PACKAGES=(
   nixpkgs#dgop
   nixpkgs#dms-shell
   nixpkgs#fuzzel
-  github:nix-community/nixGL#default
+  github:nix-community/nixGL#nixGLIntel
   nixpkgs#kitty
   nixpkgs#mako
   nixpkgs#niri
@@ -267,7 +267,7 @@ install_nix_packages() {
   fi
 
   log "Installing Nix profile packages"
-  run nix --extra-experimental-features "nix-command flakes" profile install "${NIX_PACKAGES[@]}"
+  run nix --extra-experimental-features "nix-command flakes" profile add "${NIX_PACKAGES[@]}"
 }
 
 configure_mod_w_browser() {
@@ -326,6 +326,23 @@ configure_mod_w_browser() {
     "$binds_file"
 }
 
+path_points_to_package() {
+  local path="$1"
+  local package="$2"
+  local package_name="${package%_configs}"
+  local expected="$REPO_DIR/$package/.config/$package_name"
+  local resolved
+  local expected_resolved
+
+  if [ ! -L "$path" ]; then
+    return 1
+  fi
+
+  resolved="$(readlink -f "$path" 2>/dev/null || true)"
+  expected_resolved="$(readlink -f "$expected" 2>/dev/null || true)"
+  [ -n "$resolved" ] && [ -n "$expected_resolved" ] && [ "$resolved" = "$expected_resolved" ]
+}
+
 stow_configs() {
   local package package_name config_dir
   local backup_path
@@ -343,18 +360,23 @@ stow_configs() {
     package_name="${package%_configs}"
     config_dir="$HOME/.config/$package_name"
 
-    if [ -e "$config_dir" ] && [ ! -L "$config_dir" ]; then
-      warn "$config_dir already exists and is not a symlink."
+    if { [ -e "$config_dir" ] || [ -L "$config_dir" ]; } && ! path_points_to_package "$config_dir" "$package"; then
+      if [ -L "$config_dir" ]; then
+        warn "$config_dir is a symlink to $(readlink "$config_dir"), not this repo."
+      else
+        warn "$config_dir already exists and is not a symlink."
+      fi
       backup_path="$config_dir.backup.$(date +%Y%m%d-%H%M%S)"
 
       if confirm "Back up existing ${config_dir#$HOME/} to ${backup_path#$HOME/}?"; then
         run mv "$config_dir" "$backup_path"
       else
-        warn "Continuing without a backup; GNU Stow may report conflicts."
+        warn "Skipping $package because the existing config would conflict with GNU Stow."
+        continue
       fi
     fi
 
-    run stow --dir "$REPO_DIR" --target "$HOME" --restow "$package"
+    run stow --dir "$REPO_DIR" --target "$HOME" "$package"
   done
 }
 

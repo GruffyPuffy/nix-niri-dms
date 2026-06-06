@@ -7,6 +7,6 @@ fi
 # Alternative fallback to ensure Nix is explicitly in the PATH
 export PATH="$HOME/.nix-profile/bin:$HOME/.local/state/nix/profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
 
-# Launch Niri with the loaded environment
-exec nixGL niri --session
+# Launch Niri with Intel/Mesa GL support from nixGL
+exec nixGLIntel niri --session
 #exec niri --session

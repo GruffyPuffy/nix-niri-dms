@@ -25,7 +25,7 @@ nixpkgs#cliphist
 nixpkgs#dgop
 nixpkgs#dms-shell
 nixpkgs#fuzzel
-github:nix-community/nixGL#default
+github:nix-community/nixGL#nixGLIntel
 nixpkgs#kitty
 nixpkgs#mako
 nixpkgs#niri
@@ -45,6 +45,8 @@ The installer also enables these Nix experimental features in `~/.config/nix/nix
 ```ini
 experimental-features = nix-command flakes
 ```
+
+This repo uses `nixGLIntel` for Intel/Mesa graphics and intentionally avoids the nixGL NVIDIA/default auto-detection path.
 
 ## Install
 
@@ -114,5 +116,5 @@ If Nix was installed for the first time, rebooting once is the simplest way to m
 ## Notes
 
 - This installer targets Ubuntu 24.04.
-- The Niri session is launched through `nixGL`.
+- The Niri session is launched through `nixGLIntel`.
 - The session wrapper sources `~/.profile` and then adds common Nix profile paths to `PATH`.
